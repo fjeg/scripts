@@ -1,0 +1,65 @@
+#!/bin/bash
+
+if [ -z $1 ]
+then
+    echo "Missing argument: start, end, edit"
+    exit 1
+fi
+
+if [ $EUID -ne 0 ];
+then
+    echo "Not running as root"
+    exit 1
+fi
+
+
+arg=$1
+
+case $arg in
+    "start")
+        cp /etc/hosts.block.waste /etc/hosts
+        if [ $? -eq 0 ]
+        then
+            echo "Blocking time wasting sites"
+            exit 0
+        else
+            echo "Error blocking" >&2
+            exit 1
+        fi
+        ;;
+    "end"|"stop")
+        pass=`openssl rand -base64 30`
+        echo "Type the following to unblock:"
+        echo $pass
+        read usr_pass
+        if [ $usr_pass == $pass ]
+        then
+            cp /etc/hosts.allow.all /etc/hosts
+            if [ $? -eq 0 ]
+            then
+                echo "Enjoy your internetz"
+                exit 0
+            else
+                echo "Error unblocking" >&2
+                exit 1
+            fi
+        else
+            echo "Error unblocking: type the long string better"
+            exit 1
+        fi
+        ;;
+    "edit")
+        vim /etc/hosts.block.waste
+        if [ $? -eq 0 ]
+        then
+            echo "Successfully edited blacklist"
+            exit 0
+        else
+            echo "Error editing" >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "Invalid argument: $arg"
+        exit 1
+esac

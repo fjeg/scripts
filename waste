@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# make sure running as root
+if [ $EUID -ne 0 ]; then
+    echo "Not running as root"
+    exit 1
+fi
+
+
+# check for times 
+if [ -z $1 ]; then
+    echo "No time given, unblocking for 30 minutes"
+    unblocktime="30 minutes"
+elif [ -z $2 ]; then
+    echo "Need time and units"
+    exit 1
+else
+    unblocktime="$1 $2"
+    echo "Unblocking for $unblocktime"
+fi
+
+# make sure atrun is launched
+g=`ps aux | grep -i atrun | wc -l`
+if [ "$g" -lt 2 ]; then 
+    launchctl load -w /System/Library/LaunchDaemons/com.apple.atrun.plist
+fi 
+
+# Begin unblocking
+cp /etc/hosts.allow.all /etc/hosts
+if [ $? -ne 0 ]; then
+    echo "Error unblocking" >&2
+    exit 1
+fi
+
+# set block script to run in $unblocktime
+echo "cp /etc/hosts.block.waste /etc/hosts" | at now + $unblocktime
+## osascript -e 'display notification \"Notification text\" with title "Title"'
+if [ $? -ne 0 ]; then
+    echo "Error running at command" >&2
+    exit 1
+fi
+
+exit 0
